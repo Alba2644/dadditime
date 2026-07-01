@@ -2,31 +2,32 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Persistent Work Timer</title>
+    <title>Work Timer</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; line-height: 1.6; max-width: 500px; margin: auto; }
+        body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: auto; background: #f9f9f9; }
         #timer { font-size: 3rem; text-align: center; margin: 20px 0; font-family: monospace; }
         .controls { display: flex; justify-content: center; gap: 10px; }
-        button { padding: 10px 20px; cursor: pointer; }
-        h2 { border-bottom: 1px solid #ccc; }
+        button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; }
+        #startBtn { background: #28a745; color: white; }
+        #stopBtn { background: #dc3545; color: white; }
+        #clearBtn { background: #6c757d; color: white; margin-top: 10px; }
         #history { list-style: none; padding: 0; }
-        #history li { padding: 8px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+        #history li { background: white; padding: 10px; margin-bottom: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; }
     </style>
 </head>
 <body>
 
     <div id="timer">00:00:00</div>
     <div class="controls">
-        <button id="startBtn" onclick="startTimer()">Start Work</button>
+        <button id="startBtn" onclick="startTimer()">Start</button>
         <button id="stopBtn" onclick="stopTimer()">Stop & Log</button>
     </div>
+    <button id="clearBtn" onclick="clearHistory()" style="width: 100%;">Clear History</button>
 
     <h2>History</h2>
     <ul id="history"></ul>
 
     <script>
-        let timerInterval;
-
         function updateDisplay() {
             const start = localStorage.getItem('startTime');
             if (start) {
@@ -37,45 +38,31 @@
                 document.getElementById('timer').innerText = `${h}:${m}:${s}`;
             }
         }
-
         function startTimer() {
             if (!localStorage.getItem('startTime')) {
                 localStorage.setItem('startTime', Date.now());
+                location.reload();
             }
         }
-
         function stopTimer() {
             const start = localStorage.getItem('startTime');
             if (start) {
-                const end = new Date().toLocaleString();
                 const duration = document.getElementById('timer').innerText;
-                const entry = `Started: ${new Date(parseInt(start)).toLocaleTimeString()} | Ended: ${new Date().toLocaleTimeString()} | Total: ${duration}`;
-                
+                const entry = `Started: ${new Date(parseInt(start)).toLocaleTimeString()} | Duration: ${duration}`;
                 let history = JSON.parse(localStorage.getItem('workHistory') || '[]');
                 history.push(entry);
                 localStorage.setItem('workHistory', JSON.stringify(history));
-                
                 localStorage.removeItem('startTime');
-                document.getElementById('timer').innerText = "00:00:00";
-                renderHistory();
+                location.reload();
             }
         }
-
+        function clearHistory() { localStorage.removeItem('workHistory'); location.reload(); }
         function renderHistory() {
-            const historyList = document.getElementById('history');
-            historyList.innerHTML = '';
+            const hList = document.getElementById('history');
             const history = JSON.parse(localStorage.getItem('workHistory') || '[]');
-            history.forEach(item => {
-                const li = document.createElement('li');
-                li.innerText = item;
-                historyList.appendChild(li);
-            });
+            history.forEach(item => { hList.innerHTML += `<li>${item}</li>`; });
         }
-
-        // Initialize
-        if (localStorage.getItem('startTime')) {
-            timerInterval = setInterval(updateDisplay, 1000);
-        }
+        if (localStorage.getItem('startTime')) setInterval(updateDisplay, 1000);
         renderHistory();
     </script>
 </body>
