@@ -1,12 +1,13 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Live Work Timer</title>
     <style>
         body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f4f9; }
-        #timer { font-size: 4rem; font-weight: bold; margin: 20px; color: #333; }
-        #history { text-align: left; max-width: 400px; margin: 20px auto; }
-        li { background: white; padding: 10px; margin-bottom: 5px; border-radius: 5px; list-style: none; border-left: 5px solid #dc3545; }
+        #timer { font-size: 4rem; font-weight: bold; margin: 20px; color: #333; font-family: monospace; }
+        #history { text-align: left; max-width: 400px; margin: 20px auto; padding: 0; }
+        li { background: white; padding: 10px; margin-bottom: 5px; border-radius: 5px; list-style: none; border-left: 5px solid #dc3545; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     </style>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
@@ -14,20 +15,24 @@
 
         const firebaseConfig = {
             apiKey: "AIzaSyDxV8Jd4DU_91d0Ccy6clopQB13AJCGxEA",
+            authDomain: "daddityme-5f770.firebaseapp.com",
             databaseURL: "https://daddityme-5f770-default-rtdb.firebaseio.com",
-            projectId: "daddityme-5f770"
+            projectId: "daddityme-5f770",
+            storageBucket: "daddityme-5f770.firebasestorage.app",
+            messagingSenderId: "807733488898",
+            appId: "1:807733488898:web:5e3a3330152825327ea61b"
         };
+        
         const db = getDatabase(initializeApp(firebaseConfig));
 
-        let startTime = null;
-
-        // 1. Sync Timer and History
+        // 1. Sync Timer
         onValue(ref(db, 'timerState'), (snapshot) => {
             const data = snapshot.val();
-            startTime = data ? data.start : null;
-            document.getElementById('timer').innerText = startTime ? "Counting..." : "00:00:00";
+            const start = data ? data.start : null;
+            document.getElementById('timer').innerText = start ? "Timer Running..." : "00:00:00";
         });
 
+        // 2. Sync History
         onValue(ref(db, 'history'), (snapshot) => {
             const list = document.getElementById('history');
             list.innerHTML = "<h3>History</h3>";
@@ -37,7 +42,7 @@
             });
         });
 
-        // 2. Password-protected actions
+        // 3. Password-protected actions
         window.performAction = (type) => {
             const pass = prompt("Enter Password:");
             if (pass !== "Elettrica1") return alert("Wrong Password!");
@@ -45,9 +50,11 @@
             if (type === 'start') {
                 update(ref(db, 'timerState'), { start: Date.now(), password: pass });
             } else {
-                const duration = document.getElementById('timer').innerText;
-                const entry = `Shift ended at ${new Date().toLocaleTimeString()}`;
-                push(ref(db, 'history'), { entry: entry, password: pass });
+                const entryText = `Work session ended at ${new Date().toLocaleTimeString()}`;
+                // Push new history item with password
+                const newHistoryRef = push(ref(db, 'history'));
+                update(newHistoryRef, { entry: entryText, password: pass });
+                // Reset timer
                 update(ref(db, 'timerState'), { start: null, password: pass });
             }
         };
