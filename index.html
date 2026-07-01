@@ -75,6 +75,47 @@
     <ul id="history"></ul>
 </body>
 </html>
+                const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+                document.getElementById('timer').innerText = `${h}:${m}:${s}`;
+            } else {
+                document.getElementById('timer').innerText = "00:00:00";
+            }
+        }, 1000);
+
+        // Sync History
+        onValue(ref(db, 'history'), (snapshot) => {
+            const list = document.getElementById('history');
+            list.innerHTML = "<h3>History</h3>";
+            snapshot.forEach((child) => {
+                const item = child.val();
+                list.innerHTML += `<li>${item.entry}</li>`;
+            });
+        });
+
+        window.performAction = (type) => {
+            const pass = prompt("Enter Password:");
+            if (pass !== "Elettrica1") return alert("Wrong Password!");
+
+            if (type === 'start') {
+                update(ref(db, 'timerState'), { start: Date.now(), password: pass });
+            } else {
+                const duration = document.getElementById('timer').innerText;
+                const entry = `Duration: ${duration} (Ended: ${new Date().toLocaleTimeString()})`;
+                const newHistoryRef = push(ref(db, 'history'));
+                update(newHistoryRef, { entry: entry, password: pass });
+                update(ref(db, 'timerState'), { start: null, password: pass });
+            }
+        };
+    </script>
+</head>
+<body>
+    <h1>Work Timer</h1>
+    <div id="timer">00:00:00</div>
+    <button onclick="performAction('start')">Start Timer</button>
+    <button onclick="performAction('stop')">Stop Timer</button>
+    <ul id="history"></ul>
+</body>
+</html>
             const list = document.getElementById('history');
             list.innerHTML = "<h3>History</h3>";
             snapshot.forEach((child) => {
