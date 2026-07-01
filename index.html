@@ -1,39 +1,66 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Work Timer</title>
+    <title>Live Work Timer</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: auto; background: #f9f9f9; }
-        #timer { font-size: 3rem; text-align: center; margin: 20px 0; font-family: monospace; }
-        .controls { display: flex; justify-content: center; gap: 10px; }
-        button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; }
-        #startBtn { background: #28a745; color: white; }
-        #stopBtn { background: #dc3545; color: white; }
-        #clearBtn { background: #6c757d; color: white; margin-top: 10px; }
-        #history { list-style: none; padding: 0; }
-        #history li { background: white; padding: 10px; margin-bottom: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; }
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
+        #timer { font-size: 4rem; margin: 20px; font-family: monospace; }
     </style>
-</head>
-<body>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+        import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
 
-    <div id="timer">00:00:00</div>
-    <div class="controls">
-        <button id="startBtn" onclick="startTimer()">Start</button>
-        <button id="stopBtn" onclick="stopTimer()">Stop & Log</button>
-    </div>
-    <button id="clearBtn" onclick="clearHistory()" style="width: 100%;">Clear History</button>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDxV8Jd4DU_91d0Ccy6clopQB13AJCGxEA",
+            authDomain: "daddityme-5f770.firebaseapp.com",
+            databaseURL: "https://daddityme-5f770-default-rtdb.firebaseio.com",
+            projectId: "daddityme-5f770",
+            storageBucket: "daddityme-5f770.firebasestorage.app",
+            messagingSenderId: "807733488898",
+            appId: "1:807733488898:web:5e3a3330152825327ea61b"
+        };
+        const db = getDatabase(initializeApp(firebaseConfig));
 
-    <h2>History</h2>
-    <ul id="history"></ul>
+        let startTime = null;
 
-    <script>
-        function updateDisplay() {
-            const start = localStorage.getItem('startTime');
-            if (start) {
-                const elapsed = Date.now() - parseInt(start);
+        // 1. Listen for updates (Real-time sync)
+        onValue(ref(db, 'timerState'), (snapshot) => {
+            const data = snapshot.val();
+            startTime = data ? data.start : null;
+            if (!startTime) document.getElementById('timer').innerText = "00:00:00";
+        });
+
+        // 2. Ticking Logic
+        setInterval(() => {
+            if (startTime) {
+                const elapsed = Date.now() - startTime;
                 const h = Math.floor(elapsed / 3600000).toString().padStart(2, '0');
                 const m = Math.floor((elapsed % 3600000) / 60000).toString().padStart(2, '0');
+                const s = Math.floor((elapsed % 60000) / 1000).toString().padStart(2, '0');
+                document.getElementById('timer').innerText = `${h}:${m}:${s}`;
+            }
+        }, 1000);
+
+        // 3. Action function
+        window.performAction = (type) => {
+            const pass = prompt("Enter Password:");
+            if (pass !== "Elettrica1") return alert("Wrong Password!");
+
+            if (type === 'start') {
+                update(ref(db, 'timerState'), { start: Date.now(), password: pass });
+            } else {
+                update(ref(db, 'timerState'), { start: null, password: pass });
+            }
+        };
+    </script>
+</head>
+<body>
+    <h1>Work Timer</h1>
+    <div id="timer">00:00:00</div>
+    <button onclick="performAction('start')">Start Timer</button>
+    <button onclick="performAction('stop')">Stop Timer</button>
+</body>
+</html>
                 const s = Math.floor((elapsed % 60000) / 1000).toString().padStart(2, '0');
                 document.getElementById('timer').innerText = `${h}:${m}:${s}`;
             }
