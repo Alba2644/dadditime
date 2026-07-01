@@ -2,12 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Live Work Timer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daddi Elettrica Timer</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f4f9; }
-        #timer { font-size: 4rem; font-weight: bold; margin: 20px; color: #333; font-family: monospace; }
-        #history { text-align: left; max-width: 400px; margin: 20px auto; padding: 0; }
-        li { background: white; padding: 10px; margin-bottom: 5px; border-radius: 5px; list-style: none; border-left: 5px solid #dc3545; }
+        :root { --primary: #2563eb; --danger: #dc2626; --bg: #f8fafc; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .card { background: white; padding: 2rem; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        #timer { font-size: 3.5rem; font-weight: 800; color: #1e293b; margin: 20px 0; font-variant-numeric: tabular-nums; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        button { padding: 18px; font-size: 1rem; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; transition: transform 0.1s; }
+        button:active { transform: scale(0.95); }
+        #startBtn { background: var(--primary); color: white; }
+        #stopBtn { background: var(--danger); color: white; }
+        h3 { color: #64748b; margin-top: 30px; }
+        #history { list-style: none; padding: 0; margin-top: 10px; text-align: left; }
+        li { background: #f1f5f9; padding: 12px; margin-bottom: 8px; border-radius: 8px; font-size: 0.9rem; border-left: 4px solid var(--primary); }
     </style>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
@@ -22,13 +31,11 @@
 
         let currentStart = null;
 
-        // Sync and Calculate Display
         onValue(ref(db, 'timerState'), (snapshot) => {
             const data = snapshot.val();
             currentStart = data ? data.start : null;
         });
 
-        // Real-time Ticking
         setInterval(() => {
             if (currentStart) {
                 const diff = Date.now() - currentStart;
@@ -41,25 +48,23 @@
             }
         }, 1000);
 
-        // Sync History
         onValue(ref(db, 'history'), (snapshot) => {
             const list = document.getElementById('history');
-            list.innerHTML = "<h3>History</h3>";
+            list.innerHTML = "";
             snapshot.forEach((child) => {
                 const item = child.val();
-                list.innerHTML += `<li>${item.entry}</li>`;
+                list.innerHTML = `<li>${item.entry}</li>` + list.innerHTML;
             });
         });
 
         window.performAction = (type) => {
             const pass = prompt("Enter Password:");
             if (pass !== "Elettrica1") return alert("Wrong Password!");
-
             if (type === 'start') {
                 update(ref(db, 'timerState'), { start: Date.now(), password: pass });
             } else {
                 const duration = document.getElementById('timer').innerText;
-                const entry = `Duration: ${duration} (Ended: ${new Date().toLocaleTimeString()})`;
+                const entry = `<b>Total: ${duration}</b><br><small>${new Date().toLocaleString()}</small>`;
                 const newHistoryRef = push(ref(db, 'history'));
                 update(newHistoryRef, { entry: entry, password: pass });
                 update(ref(db, 'timerState'), { start: null, password: pass });
@@ -68,10 +73,20 @@
     </script>
 </head>
 <body>
-    <h1>Work Timer</h1>
-    <div id="timer">00:00:00</div>
-    <button onclick="performAction('start')">Start Timer</button>
-    <button onclick="performAction('stop')">Stop Timer</button>
-    <ul id="history"></ul>
+
+    <div class="card">
+        <h2>Work Timer</h2>
+        <div id="timer">00:00:00</div>
+        <div class="controls">
+            <button id="startBtn" onclick="performAction('start')">START</button>
+            <button id="stopBtn" onclick="performAction('stop')">STOP</button>
+        </div>
+    </div>
+
+    <div style="width: 100%; max-width: 400px;">
+        <h3>History</h3>
+        <ul id="history"></ul>
+    </div>
+
 </body>
 </html>
