@@ -3,45 +3,41 @@
 <head>
     <title>Live Work Timer</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
-        #timer { font-size: 4rem; margin: 20px; font-family: monospace; }
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f4f9; }
+        #timer { font-size: 4rem; font-weight: bold; margin: 20px; color: #333; }
+        #history { text-align: left; max-width: 400px; margin: 20px auto; }
+        li { background: white; padding: 10px; margin-bottom: 5px; border-radius: 5px; list-style: none; border-left: 5px solid #dc3545; }
     </style>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
-        import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+        import { getDatabase, ref, onValue, update, push } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDxV8Jd4DU_91d0Ccy6clopQB13AJCGxEA",
-            authDomain: "daddityme-5f770.firebaseapp.com",
             databaseURL: "https://daddityme-5f770-default-rtdb.firebaseio.com",
-            projectId: "daddityme-5f770",
-            storageBucket: "daddityme-5f770.firebasestorage.app",
-            messagingSenderId: "807733488898",
-            appId: "1:807733488898:web:5e3a3330152825327ea61b"
+            projectId: "daddityme-5f770"
         };
         const db = getDatabase(initializeApp(firebaseConfig));
 
         let startTime = null;
 
-        // 1. Listen for updates (Real-time sync)
+        // 1. Sync Timer and History
         onValue(ref(db, 'timerState'), (snapshot) => {
             const data = snapshot.val();
             startTime = data ? data.start : null;
-            if (!startTime) document.getElementById('timer').innerText = "00:00:00";
+            document.getElementById('timer').innerText = startTime ? "Counting..." : "00:00:00";
         });
 
-        // 2. Ticking Logic
-        setInterval(() => {
-            if (startTime) {
-                const elapsed = Date.now() - startTime;
-                const h = Math.floor(elapsed / 3600000).toString().padStart(2, '0');
-                const m = Math.floor((elapsed % 3600000) / 60000).toString().padStart(2, '0');
-                const s = Math.floor((elapsed % 60000) / 1000).toString().padStart(2, '0');
-                document.getElementById('timer').innerText = `${h}:${m}:${s}`;
-            }
-        }, 1000);
+        onValue(ref(db, 'history'), (snapshot) => {
+            const list = document.getElementById('history');
+            list.innerHTML = "<h3>History</h3>";
+            snapshot.forEach((child) => {
+                const item = child.val();
+                list.innerHTML += `<li>${item.entry}</li>`;
+            });
+        });
 
-        // 3. Action function
+        // 2. Password-protected actions
         window.performAction = (type) => {
             const pass = prompt("Enter Password:");
             if (pass !== "Elettrica1") return alert("Wrong Password!");
@@ -49,6 +45,9 @@
             if (type === 'start') {
                 update(ref(db, 'timerState'), { start: Date.now(), password: pass });
             } else {
+                const duration = document.getElementById('timer').innerText;
+                const entry = `Shift ended at ${new Date().toLocaleTimeString()}`;
+                push(ref(db, 'history'), { entry: entry, password: pass });
                 update(ref(db, 'timerState'), { start: null, password: pass });
             }
         };
@@ -59,38 +58,6 @@
     <div id="timer">00:00:00</div>
     <button onclick="performAction('start')">Start Timer</button>
     <button onclick="performAction('stop')">Stop Timer</button>
-</body>
-</html>
-                const s = Math.floor((elapsed % 60000) / 1000).toString().padStart(2, '0');
-                document.getElementById('timer').innerText = `${h}:${m}:${s}`;
-            }
-        }
-        function startTimer() {
-            if (!localStorage.getItem('startTime')) {
-                localStorage.setItem('startTime', Date.now());
-                location.reload();
-            }
-        }
-        function stopTimer() {
-            const start = localStorage.getItem('startTime');
-            if (start) {
-                const duration = document.getElementById('timer').innerText;
-                const entry = `Started: ${new Date(parseInt(start)).toLocaleTimeString()} | Duration: ${duration}`;
-                let history = JSON.parse(localStorage.getItem('workHistory') || '[]');
-                history.push(entry);
-                localStorage.setItem('workHistory', JSON.stringify(history));
-                localStorage.removeItem('startTime');
-                location.reload();
-            }
-        }
-        function clearHistory() { localStorage.removeItem('workHistory'); location.reload(); }
-        function renderHistory() {
-            const hList = document.getElementById('history');
-            const history = JSON.parse(localStorage.getItem('workHistory') || '[]');
-            history.forEach(item => { hList.innerHTML += `<li>${item}</li>`; });
-        }
-        if (localStorage.getItem('startTime')) setInterval(updateDisplay, 1000);
-        renderHistory();
-    </script>
+    <ul id="history"></ul>
 </body>
 </html>
