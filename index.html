@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Persistent Work Timer</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; max-width: 500px; margin: auto; }
+        #timer { font-size: 3rem; text-align: center; margin: 20px 0; font-family: monospace; }
+        .controls { display: flex; justify-content: center; gap: 10px; }
+        button { padding: 10px 20px; cursor: pointer; }
+        h2 { border-bottom: 1px solid #ccc; }
+        #history { list-style: none; padding: 0; }
+        #history li { padding: 8px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <div id="timer">00:00:00</div>
+    <div class="controls">
+        <button id="startBtn" onclick="startTimer()">Start Work</button>
+        <button id="stopBtn" onclick="stopTimer()">Stop & Log</button>
+    </div>
+
+    <h2>History</h2>
+    <ul id="history"></ul>
+
+    <script>
+        let timerInterval;
+
+        function updateDisplay() {
+            const start = localStorage.getItem('startTime');
+            if (start) {
+                const elapsed = Date.now() - parseInt(start);
+                const h = Math.floor(elapsed / 3600000).toString().padStart(2, '0');
+                const m = Math.floor((elapsed % 3600000) / 60000).toString().padStart(2, '0');
+                const s = Math.floor((elapsed % 60000) / 1000).toString().padStart(2, '0');
+                document.getElementById('timer').innerText = `${h}:${m}:${s}`;
+            }
+        }
+
+        function startTimer() {
+            if (!localStorage.getItem('startTime')) {
+                localStorage.setItem('startTime', Date.now());
+            }
+        }
+
+        function stopTimer() {
+            const start = localStorage.getItem('startTime');
+            if (start) {
+                const end = new Date().toLocaleString();
+                const duration = document.getElementById('timer').innerText;
+                const entry = `Started: ${new Date(parseInt(start)).toLocaleTimeString()} | Ended: ${new Date().toLocaleTimeString()} | Total: ${duration}`;
+                
+                let history = JSON.parse(localStorage.getItem('workHistory') || '[]');
+                history.push(entry);
+                localStorage.setItem('workHistory', JSON.stringify(history));
+                
+                localStorage.removeItem('startTime');
+                document.getElementById('timer').innerText = "00:00:00";
+                renderHistory();
+            }
+        }
+
+        function renderHistory() {
+            const historyList = document.getElementById('history');
+            historyList.innerHTML = '';
+            const history = JSON.parse(localStorage.getItem('workHistory') || '[]');
+            history.forEach(item => {
+                const li = document.createElement('li');
+                li.innerText = item;
+                historyList.appendChild(li);
+            });
+        }
+
+        // Initialize
+        if (localStorage.getItem('startTime')) {
+            timerInterval = setInterval(updateDisplay, 1000);
+        }
+        renderHistory();
+    </script>
+</body>
+</html>
