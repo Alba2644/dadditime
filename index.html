@@ -7,7 +7,7 @@
         body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f4f9; }
         #timer { font-size: 4rem; font-weight: bold; margin: 20px; color: #333; font-family: monospace; }
         #history { text-align: left; max-width: 400px; margin: 20px auto; padding: 0; }
-        li { background: white; padding: 10px; margin-bottom: 5px; border-radius: 5px; list-style: none; border-left: 5px solid #dc3545; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        li { background: white; padding: 10px; margin-bottom: 5px; border-radius: 5px; list-style: none; border-left: 5px solid #dc3545; }
     </style>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
@@ -15,25 +15,66 @@
 
         const firebaseConfig = {
             apiKey: "AIzaSyDxV8Jd4DU_91d0Ccy6clopQB13AJCGxEA",
-            authDomain: "daddityme-5f770.firebaseapp.com",
             databaseURL: "https://daddityme-5f770-default-rtdb.firebaseio.com",
-            projectId: "daddityme-5f770",
-            storageBucket: "daddityme-5f770.firebasestorage.app",
-            messagingSenderId: "807733488898",
-            appId: "1:807733488898:web:5e3a3330152825327ea61b"
+            projectId: "daddityme-5f770"
         };
-        
         const db = getDatabase(initializeApp(firebaseConfig));
 
-        // 1. Sync Timer
+        let currentStart = null;
+
+        // Sync and Calculate Display
         onValue(ref(db, 'timerState'), (snapshot) => {
             const data = snapshot.val();
-            const start = data ? data.start : null;
-            document.getElementById('timer').innerText = start ? "Timer Running..." : "00:00:00";
+            currentStart = data ? data.start : null;
         });
 
-        // 2. Sync History
+        // Real-time Ticking
+        setInterval(() => {
+            if (currentStart) {
+                const diff = Date.now() - currentStart;
+                const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
+                const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
+                const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+                document.getElementById('timer').innerText = `${h}:${m}:${s}`;
+            } else {
+                document.getElementById('timer').innerText = "00:00:00";
+            }
+        }, 1000);
+
+        // Sync History
         onValue(ref(db, 'history'), (snapshot) => {
+            const list = document.getElementById('history');
+            list.innerHTML = "<h3>History</h3>";
+            snapshot.forEach((child) => {
+                const item = child.val();
+                list.innerHTML += `<li>${item.entry}</li>`;
+            });
+        });
+
+        window.performAction = (type) => {
+            const pass = prompt("Enter Password:");
+            if (pass !== "Elettrica1") return alert("Wrong Password!");
+
+            if (type === 'start') {
+                update(ref(db, 'timerState'), { start: Date.now(), password: pass });
+            } else {
+                const duration = document.getElementById('timer').innerText;
+                const entry = `Duration: ${duration} (Ended: ${new Date().toLocaleTimeString()})`;
+                const newHistoryRef = push(ref(db, 'history'));
+                update(newHistoryRef, { entry: entry, password: pass });
+                update(ref(db, 'timerState'), { start: null, password: pass });
+            }
+        };
+    </script>
+</head>
+<body>
+    <h1>Work Timer</h1>
+    <div id="timer">00:00:00</div>
+    <button onclick="performAction('start')">Start Timer</button>
+    <button onclick="performAction('stop')">Stop Timer</button>
+    <ul id="history"></ul>
+</body>
+</html>
             const list = document.getElementById('history');
             list.innerHTML = "<h3>History</h3>";
             snapshot.forEach((child) => {
